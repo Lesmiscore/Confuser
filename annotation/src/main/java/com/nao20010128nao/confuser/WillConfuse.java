@@ -1,4 +1,4 @@
-package ankoushinist.SKSKdroid.confuser;
+package com.nao20010128nao.confuser;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

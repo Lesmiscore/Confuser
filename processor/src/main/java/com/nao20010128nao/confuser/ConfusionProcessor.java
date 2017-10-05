@@ -1,18 +1,11 @@
-package ankoushinist.SKSdroid.confuser;
+package com.nao20010128nao.confuser;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.Writer;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Modifier;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,7 +19,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 
-import ankoushinist.SKSKdroid.confuser.WillConfuse;
+import com.nao20010128nao.confuser.WillConfuse;
 
 /**
 * http://mike-neck.hatenadiary.com/entry/2014/08/28/194306
@@ -34,7 +27,7 @@ import ankoushinist.SKSKdroid.confuser.WillConfuse;
 * http://qiita.com/opengl-8080/items/beda51fe4f23750c33e9
 * */
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-@SupportedAnnotationTypes("ankoushinist.SKSKdroid.confuser.WillConfuse")
+@SupportedAnnotationTypes("WillConfuse")
 public class ConfusionProcessor extends AbstractProcessor {
     Set<String> usedClassNames=new HashSet<>(100);
 
@@ -168,7 +161,7 @@ public class ConfusionProcessor extends AbstractProcessor {
 
     String[] removeRedundantArgs(String[] input){
         return Stream.of(input)
-            .filter(a->a!=null)
+            .filter(Objects::nonNull)
             .toArray(String[]::new);
     }
 
