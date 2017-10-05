@@ -20,6 +20,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 
 import com.nao20010128nao.confuser.WillConfuse;
+import org.apache.commons.math3.random.MersenneTwister;
 
 /**
 * http://mike-neck.hatenadiary.com/entry/2014/08/28/194306
@@ -27,7 +28,7 @@ import com.nao20010128nao.confuser.WillConfuse;
 * http://qiita.com/opengl-8080/items/beda51fe4f23750c33e9
 * */
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-@SupportedAnnotationTypes("WillConfuse")
+@SupportedAnnotationTypes("com.nao20010128nao.confuser.WillConfuse")
 public class ConfusionProcessor extends AbstractProcessor {
     Set<String> usedClassNames=new HashSet<>(100);
 
@@ -36,13 +37,11 @@ public class ConfusionProcessor extends AbstractProcessor {
         typeElements.forEach(System.out::println);
         for (TypeElement typeElement : typeElements) {
             for (Element element : roundEnvironment.getElementsAnnotatedWith(typeElement)) {
-                System.out.println(element);
                 if(element.getKind()!= ElementKind.CLASS){
                     continue;
                 }
                 String pkgName=element.toString();
                 pkgName=pkgName.substring(0,pkgName.lastIndexOf("."));
-                System.out.println(pkgName);
 
                 WillConfuse opts=element.getAnnotation(WillConfuse.class);
                 int modifier=opts.modifier();
@@ -55,9 +54,17 @@ public class ConfusionProcessor extends AbstractProcessor {
                 boolean printNest=opts.printNest();
                 String[] constructors=removeRedundantArgs(opts.constructors());
                 int constructorsModifier=opts.constructorsModifier();
+                String randomSeed=opts.randomSeed();
+
+                MersenneTwister twister;
+                if("".equals(randomSeed)){
+                    twister=new MersenneTwister();
+                }else{
+                    twister=new MersenneTwister(randomSeed.hashCode());
+                }
 
                 Filer filer=processingEnv.getFiler();
-                List<String> middleClassNames=createNumberedStream(nest).map(this::nextClassName).collect(Collectors.toList());
+                List<String> middleClassNames=createNumberedStream(nest).map(a->twister).map(this::nextClassName).collect(Collectors.toList());
                 List<String> finalClasses=Stream.concat(Stream.of(className),middleClassNames.stream()).collect(Collectors.toList());
                 List<String> extendFrom=Stream.concat(middleClassNames.stream(),Stream.of(element.getSimpleName().toString())).map(pkgName.concat(".")::concat).collect(Collectors.toList());
 
@@ -92,7 +99,6 @@ public class ConfusionProcessor extends AbstractProcessor {
                         }
                         javaFile.append("class ").append(finalClasses.get(i));
                         javaFile.append(" extends ").append(extendFrom.get(i));
-                        // TODO: override constructors
                         if(constructors.length==0){
                             // no constructors to append
                             javaFile.append("{}\n");
@@ -144,10 +150,12 @@ public class ConfusionProcessor extends AbstractProcessor {
         return true;
     }
 
-    String nextClassName(int ignored){
-        String name="_"+ UUID.randomUUID().toString().replace("-","").toUpperCase();
+    String nextClassName(MersenneTwister generator){
+        byte[] bytes=new byte[1024];
+        generator.nextBytes(bytes);
+        String name="_"+ UUID.nameUUIDFromBytes(bytes).toString().replace("-","").toUpperCase();
         if(usedClassNames.contains(name)) {
-            return nextClassName(0);
+            return nextClassName(generator);
         } else{
             usedClassNames.add(name);
             return name;

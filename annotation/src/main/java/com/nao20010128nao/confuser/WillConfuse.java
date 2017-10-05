@@ -15,4 +15,5 @@ public @interface WillConfuse {
     boolean printNest() default false;
     String[] constructors() default {};
     int constructorsModifier() default Modifier.PUBLIC;
+    String randomSeed() default "";
 }
