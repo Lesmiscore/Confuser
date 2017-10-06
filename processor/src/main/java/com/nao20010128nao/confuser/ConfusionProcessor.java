@@ -39,7 +39,7 @@ public class ConfusionProcessor extends AbstractProcessor {
             .collect(Collectors.toList())) {
             String pkgName=classes.toString();
             if(pkgName.contains("."))
-                pkgName=pkgName.substring(0,pkgName.lastIndexOf("."))+".";
+                pkgName=pkgName.substring(0,pkgName.lastIndexOf(".")+1);
             else
                 pkgName="";
 
