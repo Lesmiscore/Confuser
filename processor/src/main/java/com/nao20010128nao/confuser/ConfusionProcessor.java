@@ -3,7 +3,6 @@ package com.nao20010128nao.confuser;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.lang.reflect.*;
 import java.lang.reflect.Modifier;
 import java.security.SecureRandom;
 import java.util.*;
@@ -18,9 +17,7 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
-import javax.lang.model.util.*;
 
-import com.nao20010128nao.confuser.WillConfuse;
 import org.apache.commons.math3.random.MersenneTwister;
 
 /**
@@ -29,7 +26,7 @@ import org.apache.commons.math3.random.MersenneTwister;
 * http://qiita.com/opengl-8080/items/beda51fe4f23750c33e9
 * */
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-@SupportedAnnotationTypes({"com.nao20010128nao.confuser.WillConfuse","com.nao20010128nao.confuser.NestedOverriden"})
+@SupportedAnnotationTypes({"com.nao20010128nao.confuser.WillConfuse","com.nao20010128nao.confuser.NestedOverridden"})
 public class ConfusionProcessor extends AbstractProcessor {
     Set<String> usedClassNames=new HashSet<>(100);
 
@@ -41,7 +38,10 @@ public class ConfusionProcessor extends AbstractProcessor {
             .map(a->(TypeElement)a)
             .collect(Collectors.toList())) {
             String pkgName=classes.toString();
-            pkgName=pkgName.substring(0,pkgName.lastIndexOf("."));
+            if(pkgName.contains("."))
+                pkgName=pkgName.substring(0,pkgName.lastIndexOf("."))+".";
+            else
+                pkgName="";
 
             WillConfuse opts=classes.getAnnotation(WillConfuse.class);
             int modifier=opts.modifier();
@@ -64,11 +64,13 @@ public class ConfusionProcessor extends AbstractProcessor {
             Filer filer=processingEnv.getFiler();
             List<String> middleClassNames=createNumberedStream(nest).map(a->twister).map(this::nextClassName).collect(Collectors.toList());
             List<String> finalClasses=Stream.concat(Stream.of(className),middleClassNames.stream()).collect(Collectors.toList());
-            List<String> extendFrom=Stream.concat(middleClassNames.stream(),Stream.of(classes.getSimpleName().toString())).map(pkgName.concat(".")::concat).collect(Collectors.toList());
+            List<String> extendFrom=Stream.concat(middleClassNames.stream(),Stream.of(classes.getSimpleName().toString())).map(pkgName::concat).collect(Collectors.toList());
 
-            try(Writer javaFile=new BufferedWriter(filer.createSourceFile(pkgName+"."+className).openWriter())){
+            try(Writer javaFile=new BufferedWriter(filer.createSourceFile(pkgName+className).openWriter())){
                 javaFile.append("/* AUTO GENERATED FILE. DO NOT CHANGE. */\n");
-                javaFile.append("package ").append(pkgName).append(';').append('\n');
+                if (!"".equals(pkgName)) {
+                    javaFile.append("package ").append(pkgName).append(';').append('\n');
+                }
                 for(int i=0;i<finalClasses.size();i++){
                     if(printNest){
                         javaFile.append("/* ")
@@ -103,11 +105,13 @@ public class ConfusionProcessor extends AbstractProcessor {
                         .filter(a->a.getKind()==ElementKind.CONSTRUCTOR)
                         .filter(a->a instanceof ExecutableElement)
                         .map(a->(ExecutableElement)a)
-                        .filter(a->a.getAnnotation(NestedOverriden.class)!=null)
+                        .filter(a->a.getAnnotation(NestedOverridden.class)!=null)
                         .collect(Collectors.toList())){
-                        NestedOverriden params=constructor.getAnnotation(NestedOverriden.class);
+                        NestedOverridden params=constructor.getAnnotation(NestedOverridden.class);
 
                         int methodModifier=params.modifier();
+
+                        javaFile.append("    ");
                         if(i==0){
                             // first should follow the annotation
                             if((methodModifier& Modifier.PUBLIC)!=0){
@@ -124,11 +128,15 @@ public class ConfusionProcessor extends AbstractProcessor {
                             }else{
                                 javaFile.append("/* no extend limitation */ ");
                             }
+                        }else{
+                            for(javax.lang.model.element.Modifier childMethodModifier:constructor.getModifiers()){
+                                javaFile.append(childMethodModifier.toString()).append(" ");
+                            }
                         }
                         javaFile.append(finalClasses.get(i)).append("(");
                         String[] types=constructor.getParameters().stream()
-                            .map(VariableElement::getConstantValue)
-                            .map(processingEnv.getElementUtils()::getConstantExpression)
+                            .map(VariableElement::asType)
+                            .map(this::typeMirrorToClassName)
                             .toArray(String[]::new);
                         int id=0;
                         for(String type:types){
@@ -153,13 +161,14 @@ public class ConfusionProcessor extends AbstractProcessor {
                         .filter(a->a.getKind()==ElementKind.METHOD)
                         .filter(a->a instanceof ExecutableElement)
                         .map(a->(ExecutableElement)a)
-                        .filter(a->a.getAnnotation(NestedOverriden.class)!=null)
+                        .filter(a->a.getAnnotation(NestedOverridden.class)!=null)
                         .collect(Collectors.toList())){
-                        NestedOverriden params=method.getAnnotation(NestedOverriden.class);
+                        NestedOverridden params=method.getAnnotation(NestedOverridden.class);
 
                         int methodModifier=params.modifier();
                         boolean retReq=params.returnRequired();
 
+                        javaFile.append("    ");
                         if(i==0){
                             // first should follow the annotation
                             if((methodModifier& Modifier.PUBLIC)!=0){
@@ -174,7 +183,11 @@ public class ConfusionProcessor extends AbstractProcessor {
                             }else if((methodModifier& Modifier.FINAL)!=0){
                                 javaFile.append("final ");
                             }else{
-                                javaFile.append("/* no extend limitation */ ");
+                                javaFile.append("/* no override limitation */ ");
+                            }
+                        }else{
+                            for(javax.lang.model.element.Modifier childMethodModifier:method.getModifiers()){
+                                javaFile.append(childMethodModifier.toString()).append(" ");
                             }
                         }
                         /* Return type */
@@ -209,7 +222,7 @@ public class ConfusionProcessor extends AbstractProcessor {
                         javaFile.append("    }\n");
                     }
                     /* Class end */
-                    javaFile.append('}');
+                    javaFile.append("}\n");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -230,9 +243,8 @@ public class ConfusionProcessor extends AbstractProcessor {
         }
     }
 
-    Stream<Integer> createNumberedStream(int limit){
-        final int[] count = {0};
-        return Stream.generate(()-> count[0]++).limit(limit);
+    Stream<Object> createNumberedStream(int limit){
+        return Stream.generate(Object::new).limit(limit);
     }
 
     String typeMirrorToClassName(TypeMirror input){
@@ -240,8 +252,12 @@ public class ConfusionProcessor extends AbstractProcessor {
             return typeMirrorToClassName(((ArrayType) input).getComponentType())+"[]";
         }else if(input instanceof DeclaredType){
             return ((DeclaredType) input).asElement().toString();
+        }else if(input instanceof PrimitiveType){
+            return input.toString();
+        }else if(input instanceof NoType){
+            return "void";
         }else{
-            return null;
+            return "null";
         }
     }
 

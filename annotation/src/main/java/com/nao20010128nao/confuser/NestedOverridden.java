@@ -5,7 +5,7 @@ import java.lang.reflect.*;
 
 @Target({ElementType.CONSTRUCTOR,ElementType.METHOD})
 @Retention(RetentionPolicy.SOURCE)
-public @interface NestedOverriden {
+public @interface NestedOverridden {
     int modifier() default Modifier.PUBLIC;
     boolean returnRequired() default false;
 }
