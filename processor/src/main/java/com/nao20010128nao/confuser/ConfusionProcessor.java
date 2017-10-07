@@ -260,75 +260,7 @@ public class ConfusionProcessor extends AbstractProcessor {
             return "null";
         }
     }
-
-    String[] removeRedundantArgs(String[] input){
-        return Stream.of(input)
-            .filter(Objects::nonNull)
-            .toArray(String[]::new);
-    }
-
-    String[] internalClassFormToClassNames(String input){
-        char[] chars=input.toCharArray();
-        StringBuilder classNameTmp=new StringBuilder();
-        boolean classNameNow=false;
-        int arrayDim=0;
-        List<String> results=new ArrayList<>();
-        for(int i=0;i<chars.length;i++){
-            if(classNameNow){
-                if(chars[i]==';'){
-                    classNameNow=false;
-                    results.add((classNameTmp+repeat("[]",arrayDim)).replace('/','.'));
-                    arrayDim=0;
-                    continue;
-                }
-                classNameTmp.append(chars[i]);
-            }else{
-                switch (chars[i]){
-                    case 'B':
-                        results.add("boolean"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'C':
-                        results.add("char"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'D':
-                        results.add("double"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'F':
-                        results.add("float"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'I':
-                        results.add("int"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'J':
-                        results.add("long"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'S':
-                        results.add("short"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'Z':
-                        results.add("boolean"+repeat("[]",arrayDim));
-                        arrayDim=0;
-                        break;
-                    case 'L':
-                        classNameNow=true;
-                        classNameTmp.setLength(0);
-                        break;
-                    case '[':
-                        arrayDim++;
-                        break;
-                }
-            }
-        }
-        return results.toArray(new String[results.size()]);
-    }
-
+    
     String repeat(String str,int times){
         StringBuilder sb=new StringBuilder(str.length()*times);
         for(int i=0;i<times;i++){
