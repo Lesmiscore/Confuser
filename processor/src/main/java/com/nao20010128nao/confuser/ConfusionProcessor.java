@@ -260,7 +260,7 @@ public class ConfusionProcessor extends AbstractProcessor {
             return "null";
         }
     }
-    
+
     String repeat(String str,int times){
         StringBuilder sb=new StringBuilder(str.length()*times);
         for(int i=0;i<times;i++){
