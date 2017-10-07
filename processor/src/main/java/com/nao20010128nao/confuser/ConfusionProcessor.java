@@ -195,8 +195,8 @@ public class ConfusionProcessor extends AbstractProcessor {
                         /* Name and arg brace */
                         javaFile.append(method.getSimpleName()).append("(");
                         String[] types=method.getParameters().stream()
-                            .map(VariableElement::getConstantValue)
-                            .map(processingEnv.getElementUtils()::getConstantExpression)
+                            .map(VariableElement::asType)
+                            .map(this::typeMirrorToClassName)
                             .toArray(String[]::new);
                         int id=0;
                         for(String type:types){
